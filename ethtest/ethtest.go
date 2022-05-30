@@ -4,6 +4,8 @@ import(
     "context"
     "fmt"
     "log"
+    "strconv"
+    "math/big"
     "github.com/ethereum/go-ethereum/ethclient"
     "github.com/ethereum/go-ethereum/common"
     "github.com/ethereum/go-ethereum/core/types"
@@ -17,6 +19,14 @@ type BlockJson struct {
     TransHash     []string  `json:"transactions"`
 
 }
+
+type LimitBlocksJson struct {
+    BlockHash     string    `json:"blockHash"`
+    BlockNumber   uint64    `json:"blockNumber"`
+    BlockTime     uint64    `json:"blockTime"`
+    ParentHash    string    `json:"parentHash"`
+}
+
 
 func GetEthtransactionHash(keyid string) *types.Transaction {
     client, err := ethclient.Dial("https://data-seed-prebsc-2-s3.binance.org:8545/")
@@ -36,13 +46,14 @@ func GetEthtransactionHash(keyid string) *types.Transaction {
 }
 
 
-func GetEthblocksId(keyid string) *types.Block {
+func GetEthblocksId(keyid string) BlockJson {
     client, err := ethclient.Dial("https://data-seed-prebsc-2-s3.binance.org:8545/")
     if err != nil {
 	fmt.Println("this error is::::",err)
     }
-    blockHash := common.HexToHash(keyid)
-    blockresult, err := client.BlockByHash(context.Background(), blockHash)
+    blockNum, _ := strconv.Atoi(keyid)
+    bigblockNum := big.NewInt(int64(blockNum))
+    blockresult, err := client.BlockByNumber(context.Background(), bigblockNum)
 
     if err != nil {
 	log.Fatal("blockhash error::",err)
@@ -51,7 +62,6 @@ func GetEthblocksId(keyid string) *types.Block {
     for i := 0; i < len(blockresult.Transactions()); i++{
         transResult = append(transResult, blockresult.Transactions()[i].Hash().Hex())
     }
-    fmt.Println(len(blockresult.Transactions())) // 7
     result := BlockJson{
 	BlockHash: blockresult.Hash().Hex(),
 	BlockNumber: blockresult.Number().Uint64(),
@@ -59,6 +69,31 @@ func GetEthblocksId(keyid string) *types.Block {
 	ParentHash: blockresult.ParentHash().Hex(),
 	TransHash: transResult,
     }
-    fmt.Println("result!!!!",result)
-    return blockresult
+    return result
+}
+
+func GetEthblocksLimit(keyid string) []LimitBlocksJson {
+    client, err := ethclient.Dial("https://data-seed-prebsc-2-s3.binance.org:8545/")
+    if err != nil {
+	fmt.Println("this error is::::",err)
+    }
+    blockNum, _ := strconv.Atoi(keyid)
+    bigblockNum := uint64(blockNum)
+    blockresult, err := client.BlockByNumber(context.Background(),nil)
+    if err != nil {
+	log.Fatal("blockhash error::",err)
+    }
+    nowBlockhigh := blockresult.Number().Uint64()
+    var blockResult  []LimitBlocksJson
+    for i := nowBlockhigh; i > (nowBlockhigh - bigblockNum); i--{
+	limitBlockNum := big.NewInt(int64(i))
+	limitBlockresult, _ := client.BlockByNumber(context.Background(),limitBlockNum)
+	blockResult = append(blockResult, LimitBlocksJson{
+            BlockHash: limitBlockresult.Hash().Hex(),
+            BlockNumber: limitBlockresult.Number().Uint64(),
+            BlockTime: limitBlockresult.Time(),
+            ParentHash: limitBlockresult.ParentHash().Hex(),
+        })
+    }
+    return blockResult
 }

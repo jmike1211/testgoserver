@@ -12,19 +12,20 @@ type TestData struct {
 
 func blocks(c *gin.Context) {
 	limitBlocks := c.Query("limit")
-        c.JSON(http.StatusOK, limitBlocks)
+	jsonresult := ethtest.GetEthblocksLimit(limitBlocks)
+        c.JSON(http.StatusOK, jsonresult)
 }
 
 func blocksId(c *gin.Context) {
 	blockId := c.Param("id")
 	jsonresult := ethtest.GetEthblocksId(blockId)
-	c.JSON(http.StatusOK, gin.H{"return": jsonresult})
+	c.JSON(http.StatusOK, jsonresult)
 }
 
 func transaction(c *gin.Context) {
 	transHash := c.Param("txHash")
 	jsonresult := ethtest.GetEthtransactionHash(transHash)
-	c.JSON(http.StatusOK, gin.H{"return": jsonresult})
+	c.JSON(http.StatusOK, jsonresult)
 }
 
 func main() {
